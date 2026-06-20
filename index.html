@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Crypto Futures Scanner V3 -- Standalone Dashboard</title>
+<style>
+:root{
+  --bg:#060a12;--bg2:#0b1220;--bg3:#111928;--bg4:#182032;
+  --border:#1a2d48;--border2:#243d5c;
+  --text:#c8d8f0;--muted:#4a6a8f;--muted2:#2a3f5f;
+  --blue:#3b9eff;--blue2:#1255a0;
+  --green:#22c55e;--green2:#0d2b1a;
+  --amber:#f59e0b;--amber2:#2d1a03;
+  --red:#ef4444;--red2:#2b0808;
+  --mono:'Courier New','Consolas',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--text);
+          font-family:var(--mono);font-size:13px;line-height:1.5}
+a{color:var(--blue);text-decoration:none}
+
+.nav{background:var(--bg3);border-bottom:2px solid var(--border);
+     display:flex;align-items:center;padding:0 20px;height:52px;gap:14px}
+.nav-brand{font-size:14px;font-weight:bold;color:var(--blue)}
+.nav-brand .v{color:var(--amber);font-size:11px;margin-left:6px}
+.nav-status{margin-left:auto;display:flex;align-items:center;gap:12px;font-size:11px;color:var(--muted)}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block;background:var(--muted2)}
+.dot.live{background:var(--green);box-shadow:0 0 8px var(--green);animation:pulse 2s infinite}
+.dot.scan{background:var(--amber);animation:blink .8s infinite}
+.dot.err{background:var(--red)}
+.dot.off{background:var(--red);}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+
+.page{max-width:1600px;margin:0 auto;padding:20px}
+.row{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:16px}
+
+.connbar{background:var(--bg3);border:1px solid var(--border2);border-radius:6px;
+         padding:10px 14px;font-size:11px;margin-bottom:14px;display:flex;
+         align-items:center;gap:10px}
+.connbar input{background:var(--bg2);border:1px solid var(--border);color:var(--text);
+               font-family:var(--mono);font-size:11px;padding:4px 8px;border-radius:4px;
+               width:220px}
+.connbar button{background:var(--blue2);border:1px solid var(--blue);color:#fff;
+                 font-family:var(--mono);font-size:11px;padding:5px 12px;border-radius:4px;
+                 cursor:pointer}
+.connbar button:hover{background:var(--blue)}
+
+.alert{border-radius:6px;padding:10px 14px;font-size:12px;margin-bottom:14px}
+.aw{background:var(--amber2);color:var(--amber);border:1px solid #4d3206}
+.ai{background:#0a1f35;color:var(--blue);border:1px solid var(--border2)}
+.ae{background:var(--red2);color:var(--red);border:1px solid #4d1212}
+.ag{background:var(--green2);color:var(--green);border:1px solid #154d2e}
+
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:14px 18px}
+.card .cv{font-size:28px;font-weight:bold;line-height:1.1;color:var(--blue)}
+.card .cl{font-size:10px;color:var(--muted);margin-top:3px;text-transform:uppercase;letter-spacing:.05em}
+.card .cs{font-size:10px;color:var(--muted2);margin-top:6px}
+.card.cg .cv{color:var(--green)} .card.ca .cv{color:var(--amber)} .card.cr .cv{color:var(--red)}
+
+.prog-outer{background:var(--bg3);border-radius:2px;height:3px;border:1px solid var(--border);
+            overflow:hidden;margin:8px 0}
+.prog-inner{height:100%;background:linear-gradient(90deg,var(--blue2),var(--blue));
+            border-radius:2px;transition:width .5s}
+
+table{width:100%;border-collapse:collapse;font-size:12px}
+thead th{text-align:left;color:var(--muted);font-size:10px;text-transform:uppercase;
+         letter-spacing:.05em;padding:8px 10px;border-bottom:1px solid var(--border2)}
+tbody td{padding:8px 10px;border-bottom:1px solid rgba(26,45,72,.4)}
+tbody tr:hover{background:var(--bg3)}
+.pill{border-radius:3px;padding:2px 8px;font-size:10px;font-weight:bold;display:inline-block}
+.pg{background:var(--green2);color:var(--green)}
+.pa{background:var(--amber2);color:var(--amber)}
+.pr{background:var(--red2);color:var(--red)}
+.pb{background:#0a1f35;color:var(--blue)}
+.tg{color:var(--green)} .tr{color:var(--red)}
+.sbar-wrap{display:flex;align-items:center;gap:6px}
+.sbar{height:5px;border-radius:2px}
+.score-num{font-size:11px;font-weight:bold}
+
+.section-title{font-size:12px;color:var(--muted);margin:18px 0 8px;text-transform:uppercase;
+               letter-spacing:.05em}
+.tablewrap{background:var(--bg2);border:1px solid var(--border);border-radius:8px;
+           overflow:auto;margin-bottom:16px}
+
+.logbox{background:#030810;border:1px solid var(--border);border-radius:6px;
+        padding:8px 12px;height:160px;overflow-y:auto;font-size:11px;
+        color:#4a8fbd;margin-bottom:14px;scroll-behavior:smooth}
+.ll{padding:1px 0;border-bottom:1px solid rgba(26,45,72,.25)}
+.ll:last-child{border:none} .ll.err{color:var(--red)}
+.empty{color:var(--muted);font-size:12px;padding:30px;text-align:center}
+
+.cd-overlay{display:none;position:fixed;inset:0;background:rgba(3,8,16,.8);
+            z-index:200;align-items:flex-start;justify-content:center;
+            overflow-y:auto;padding:20px 10px}
+.cd-overlay.open{display:flex}
+.cd-panel{background:var(--bg2);border:1px solid var(--border2);border-radius:10px;
+          max-width:560px;width:100%;margin-top:16px}
+.cd-head{display:flex;align-items:center;justify-content:space-between;
+         padding:14px 18px;border-bottom:1px solid var(--border2);background:var(--bg3)}
+.cd-head h2{font-size:14px;color:var(--blue);margin:0;font-family:var(--mono)}
+.cd-close{cursor:pointer;color:var(--muted);font-size:20px;line-height:1;
+          background:none;border:none;padding:4px 8px;font-family:var(--mono)}
+.cd-close:hover{color:var(--text)}
+.cd-bodywrap{padding:16px 18px}
+.cd-loading{text-align:center;padding:36px;color:var(--muted)}
+.cd-verdict{border-radius:6px;padding:10px 14px;font-size:12px;font-weight:bold;
+            margin-bottom:14px;text-align:center}
+.cd-verdict.safe{background:var(--green2);color:var(--green);border:1px solid #154d2e}
+.cd-verdict.risk{background:var(--red2);color:var(--red);border:1px solid #4d1212}
+.cd-verdict.unknown{background:#0a1f35;color:var(--blue);border:1px solid var(--border2)}
+.cd-check{border:1px solid var(--border2);border-radius:6px;padding:10px 12px;margin-bottom:8px}
+.cd-check-head{display:flex;align-items:center;justify-content:space-between;
+               font-size:11px;font-weight:bold;margin-bottom:5px}
+.cd-badge{font-size:9px;padding:2px 6px;border-radius:3px;font-weight:bold}
+.cd-badge.pass{background:var(--green2);color:var(--green)}
+.cd-badge.fail{background:var(--red2);color:var(--red)}
+.cd-badge.insufficient_data{background:var(--amber2);color:var(--amber)}
+.cd-detailtxt{font-size:11px;color:var(--muted);line-height:1.5}
+.cd-rawtxt{font-size:10px;color:var(--muted2);margin-top:4px}
+.cd-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:14px;font-size:10px}
+.cd-grid div{background:var(--bg3);border-radius:5px;padding:7px 9px}
+.cd-grid b{color:var(--text);font-size:12px;display:block;margin-top:2px}
+.cd-errstxt{font-size:10px;color:var(--red);margin-top:8px}
+</style>
+</head>
+<body>
+
+<div class="nav">
+  <div class="nav-brand">CFS<span class="v">V3 STANDALONE</span></div>
+  <div class="nav-status">
+    <span id="connDot" class="dot off"></span>
+    <span id="connText">connecting...</span>
+  </div>
+</div>
+
+<div class="page">
+
+  <div class="connbar">
+    <span>Backend:</span>
+    <input id="backendUrl" type="text" value="" placeholder="http://localhost:5000" onkeydown="if(event.key==='Enter'){event.preventDefault();setBackend();}" />
+    <button type="button" onclick="setBackend(); return false;">Connect</button>
+    <span id="connMsg" style="color:var(--muted)"></span>
+  </div>
+
+  <div id="alertBox"></div>
+
+  <div class="row" id="statsRow"></div>
+
+  <div class="section-title">Live Log</div>
+  <div class="logbox" id="logbox"><div class="empty">Waiting for connection...</div></div>
+
+  <div class="section-title">Ranked Signals</div>
+  <div class="tablewrap">
+    <table id="sigTable">
+      <thead>
+        <tr>
+          <th>Symbol</th><th>Dir</th><th>Score</th><th>Grade</th>
+          <th>Entry</th><th>Stop</th><th>TP1</th><th>TP2</th><th>TP3</th>
+          <th>RR</th><th>OI Δ%</th><th>Funding%</th>
+        </tr>
+      </thead>
+      <tbody id="sigBody">
+        <tr><td colspan="12" class="empty">No data yet</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+<div class="cd-overlay" id="cdOverlay" onclick="if(event.target===this)closeCoinDetail()">
+  <div class="cd-panel">
+    <div class="cd-head"><h2 id="cdTitle">--</h2>
+      <button class="cd-close" onclick="closeCoinDetail()">&times;</button></div>
+    <div class="cd-bodywrap" id="cdBody"><div class="cd-loading">Loading live metrics...</div></div>
+  </div>
+</div>
+
+<script>
+let BACKEND = (window.location.protocol === "http:" || window.location.protocol === "https:")
+              ? window.location.origin
+              : "http://localhost:5000";
+document.getElementById('backendUrl').value = BACKEND;
+let pollTimer = null;
+let failCount = 0;
+
+function setBackend(){
+  BACKEND = document.getElementById('backendUrl').value.trim().replace(/\/$/, "");
+  document.getElementById('connMsg').textContent = "Connecting to " + BACKEND + " ...";
+  failCount = 0;
+  poll();
+}
+
+function fmt(v, decimals){
+  if(v === null || v === undefined) return "--";
+  let n = Number(v);
+  if(isNaN(n)) return String(v);
+  if(n === 0) return "--";
+  if(Math.abs(n) > 1000) return n.toFixed(2);
+  if(Math.abs(n) > 1) return n.toFixed(4);
+  return n.toFixed(decimals || 8);
+}
+
+function scoreColor(score){
+  if(score >= 85) return "#22c55e";
+  if(score >= 75) return "#3b9eff";
+  if(score >= 65) return "#f59e0b";
+  return "#ef4444";
+}
+
+function gradeClass(g){
+  return {"A+":"pg","A":"pb","B":"pa","C":"pr"}[g] || "pb";
+}
+
+function renderStats(d){
+  const row = document.getElementById('statsRow');
+  row.innerHTML = `
+    <div class="card cg"><div class="cv">${d.signals.length}</div><div class="cl">Active Signals</div></div>
+    <div class="card"><div class="cv">${d.scan_count}</div><div class="cl">Scans Completed</div></div>
+    <div class="card ${d.running ? 'ca' : ''}"><div class="cv">${d.running ? 'RUNNING' : 'IDLE'}</div><div class="cl">Scanner Status</div></div>
+    <div class="card"><div class="cv">${d.last_scan ? new Date(d.last_scan).toLocaleTimeString() : '--'}</div><div class="cl">Last Scan</div></div>
+  `;
+}
+
+function renderAlert(d){
+  const box = document.getElementById('alertBox');
+  let html = "";
+  if(d.running){
+    html = `<div class="alert aw">Scan in progress -- results update automatically when complete.</div>
+            <div class="prog-outer"><div class="prog-inner" style="width:${d.pct}%"></div></div>`;
+  } else if(!d.signals.length){
+    html = `<div class="alert ai">No signals yet. Waiting for first scan to complete.</div>`;
+  } else if(d.error){
+    html = `<div class="alert ae">Last scan error: ${String(d.error).slice(0,200)}</div>`;
+  } else {
+    html = `<div class="alert ag">Live -- ${d.signals.length} signals ranked.</div>`;
+  }
+  box.innerHTML = html;
+}
+
+function renderLog(d){
+  const box = document.getElementById('logbox');
+  if(!d.log || !d.log.length){
+    box.innerHTML = '<div class="empty">No log entries yet</div>';
+    return;
+  }
+  box.innerHTML = d.log.map(l =>
+    `<div class="ll${l.indexOf && l.indexOf('ERROR')>=0 ? ' err':''}">${typeof l === 'string' ? l : (l.msg||'')}</div>`
+  ).join("");
+  box.scrollTop = box.scrollHeight;
+}
+
+function renderTable(d){
+  const body = document.getElementById('sigBody');
+  if(!d.signals || !d.signals.length){
+    body.innerHTML = '<tr><td colspan="12" class="empty">No signals yet</td></tr>';
+    return;
+  }
+  body.innerHTML = d.signals.map(s => {
+    const dirHtml = s.direction === "LONG"
+      ? '<span class="tg">&#9650; LONG</span>'
+      : '<span class="tr">&#9660; SHORT</span>';
+    const color = scoreColor(s.score || 0);
+    return `<tr class="coin-row" onclick="openCoinDetail('${s.symbol}')" style="cursor:pointer">
+      <td><b>${s.symbol || '--'}</b></td>
+      <td>${dirHtml}</td>
+      <td><div class="sbar-wrap"><div class="sbar" style="width:${s.score||0}px;background:${color}"></div>
+          <span class="score-num" style="color:${color}">${s.score||0}</span></div></td>
+      <td><span class="pill ${gradeClass(s.grade)}">${s.grade||'--'}</span></td>
+      <td>${fmt(s.entry)}</td>
+      <td>${fmt(s.stop)}</td>
+      <td>${fmt(s.tp1)}</td>
+      <td>${fmt(s.tp2)}</td>
+      <td>${fmt(s.tp3)}</td>
+      <td>${s.rr || '--'}</td>
+      <td>${s.oi_delta != null ? s.oi_delta + '%' : '--'}</td>
+      <td>${s.funding != null ? s.funding + '%' : '--'}</td>
+    </tr>`;
+  }).join("");
+}
+
+async function poll(){
+  try{
+    const res = await fetch(BACKEND + "/api/state", {cache: "no-store"});
+    if(!res.ok) throw new Error("HTTP " + res.status);
+    const d = await res.json();
+
+    failCount = 0;
+    document.getElementById('connDot').className = 'dot ' + (d.running ? 'scan' : 'live');
+    document.getElementById('connText').textContent = d.running ? 'scanning...' : 'connected';
+    document.getElementById('connMsg').textContent = '';
+
+    renderStats(d);
+    renderAlert(d);
+    renderLog(d);
+    renderTable(d);
+  } catch(err){
+    failCount++;
+    document.getElementById('connDot').className = 'dot err';
+    document.getElementById('connText').textContent = 'disconnected';
+    document.getElementById('connMsg').textContent =
+      'Cannot reach ' + BACKEND + ' -- is run.bat / app.py running? (' + err.message + ')';
+  } finally {
+    clearTimeout(pollTimer);
+    pollTimer = setTimeout(poll, 3000);
+  }
+}
+
+function openCoinDetail(symbol){
+  document.getElementById('cdTitle').textContent = symbol + ' -- Live Safe-Trade Check';
+  document.getElementById('cdBody').innerHTML = '<div class="cd-loading">Loading live metrics from OKX...</div>';
+  document.getElementById('cdOverlay').classList.add('open');
+  fetch(BACKEND + '/api/coin/' + encodeURIComponent(symbol), {cache: 'no-store'})
+    .then(r => r.json())
+    .then(d => renderCoinDetail(d))
+    .catch(e => {
+      document.getElementById('cdBody').innerHTML =
+        '<div class="cd-errstxt">Failed to load live data: ' + e.message + '</div>';
+    });
+}
+function closeCoinDetail(){
+  document.getElementById('cdOverlay').classList.remove('open');
+}
+document.addEventListener('keydown', function(e){
+  if(e.key === 'Escape') closeCoinDetail();
+});
+
+function cdFmt(v, d){
+  if(v === null || v === undefined) return '--';
+  var n = Number(v);
+  if(isNaN(n)) return String(v);
+  return n.toFixed(d === undefined ? 4 : d);
+}
+
+function cdCheckBlock(name, check){
+  if(!check) check = {status:'insufficient_data', detail:'No data returned.'};
+  var badgeText = check.status === 'pass' ? 'PASS' :
+                  check.status === 'fail' ? 'FAIL' : 'INSUFFICIENT DATA';
+  return '<div class="cd-check">' +
+         '<div class="cd-check-head"><span>' + name + '</span>' +
+         '<span class="cd-badge ' + check.status + '">' + badgeText + '</span></div>' +
+         '<div class="cd-detailtxt">' + (check.detail || '') + '</div>' +
+         '</div>';
+}
+
+function renderCoinDetail(d){
+  if(d.verdict === 'ERROR'){
+    document.getElementById('cdBody').innerHTML =
+      '<div class="cd-errstxt">Live fetch failed: ' +
+      (d.errors ? d.errors.join('; ') : 'unknown error') + '</div>';
+    return;
+  }
+
+  var verdictClass = d.verdict === 'SAFE_TRADE' ? 'safe' :
+                      d.verdict === 'BREAKDOWN_RISK' ? 'risk' : 'unknown';
+  var verdictText  = d.verdict === 'SAFE_TRADE' ? 'SAFE TRADE -- all 3 conditions pass' :
+                      d.verdict === 'BREAKDOWN_RISK' ? 'BREAKDOWN RISK -- at least one condition failed' :
+                      'INSUFFICIENT DATA -- not enough live data yet for a verdict';
+
+  var html = '<div class="cd-verdict ' + verdictClass + '">' + verdictText + '</div>';
+
+  html += '<div class="cd-grid">' +
+          '<div>Live Price<b>' + cdFmt(d.price, 6) + '</b></div>' +
+          '<div>Funding Rate (8h)<b>' + (d.funding != null ? (d.funding*100).toFixed(4)+'%' : '--') + '</b></div>' +
+          '<div>15m EMA(20)<b>' + cdFmt(d.ema20_15m, 6) + '</b></div>' +
+          '<div>Distance from EMA<b>' + (d.ema_dist_pct != null ? d.ema_dist_pct.toFixed(2)+'%' : '--') + '</b></div>' +
+          '<div>Current Open Interest<b>$' + cdFmt(d.oi_now, 0) + '</b></div>' +
+          '<div>OI Samples Collected<b>' + (d.oi_history_samples||0) + ' (' + (d.oi_history_window_minutes||0) + ' min span)</b></div>' +
+          '</div>';
+
+  html += cdCheckBlock('1. Funding Rate &lt; 0.05%', d.funding_check);
+  html += cdCheckBlock('2. Price near 15m EMA(20) (within 1.5%)', d.ema_check);
+  html += cdCheckBlock('3. OI fell during latest minor dip', d.oi_check);
+
+  if(d.dip && d.dip.detected){
+    html += '<div class="cd-rawtxt">Dip detected: ' + d.dip.dip_pct + '% pullback from ' +
+            cdFmt(d.dip.swing_high,6) + ' to ' + cdFmt(d.dip.swing_low,6) +
+            ' (' + d.dip.high_candle_idx_ago + ' candles ago to ' + d.dip.low_candle_idx_ago + ' candles ago, 15m chart)</div>';
+  } else if(d.dip && d.dip.reason){
+    html += '<div class="cd-rawtxt">Dip check: ' + d.dip.reason + '</div>';
+  }
+
+  html += '<div class="cd-rawtxt" style="margin-top:8px">Fetched live at ' + (d.fetched_at || '--') + '</div>';
+
+  if(d.errors && d.errors.length){
+    html += '<div class="cd-errstxt">Partial data -- some live calls failed: ' + d.errors.join('; ') + '</div>';
+  }
+
+  document.getElementById('cdBody').innerHTML = html;
+}
+
+poll();
+</script>
+</body>
+</html>
